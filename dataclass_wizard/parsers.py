@@ -1,24 +1,24 @@
-__all__ = ['IdentityParser',
-           'SingleArgParser',
-           'Parser',
-           'RecursionSafeParser',
-           'PatternedDTParser',
-           'LiteralParser',
-           'UnionParser',
-           'OptionalParser',
-           'IterableParser',
-           'TupleParser',
-           'VariadicTupleParser',
-           'NamedTupleParser',
-           'NamedTupleUntypedParser',
-           'MappingParser',
-           'DefaultDictParser',
-           'TypedDictParser']
+__all__ = [
+    "IdentityParser",
+    "SingleArgParser",
+    "Parser",
+    "RecursionSafeParser",
+    "PatternedDTParser",
+    "LiteralParser",
+    "UnionParser",
+    "OptionalParser",
+    "IterableParser",
+    "TupleParser",
+    "VariadicTupleParser",
+    "NamedTupleParser",
+    "NamedTupleUntypedParser",
+    "MappingParser",
+    "DefaultDictParser",
+    "TypedDictParser",
+]
 
 from dataclasses import dataclass, InitVar, is_dataclass
-from typing import (
-    Type, Any, Optional, Tuple, Dict, Iterable, Callable, List
-)
+from typing import Type, Any, Optional, Tuple, Dict, Iterable, Callable, List
 
 from .abstractions import AbstractParser
 from .bases import AbstractMeta
@@ -26,13 +26,13 @@ from .class_helper import get_meta, _META
 from .constants import TAG
 from .errors import ParseError
 from .models import PatternedDT, Extras
-from .type_def import (
-    FrozenKeys, NoneType, DefFactory,
-    T, M, S, DD, LSQ, N, NT, DT
-)
+from .type_def import FrozenKeys, NoneType, DefFactory, T, M, S, DD, LSQ, N, NT, DT
 from .utils.typing_compat import (
-    get_origin, get_args,
-    get_keys_for_typed_dict, eval_forward_ref_if_needed)
+    get_origin,
+    get_args,
+    get_keys_for_typed_dict,
+    eval_forward_ref_if_needed,
+)
 
 
 # Type defs
@@ -51,7 +51,7 @@ class IdentityParser(AbstractParser[Type[T], T]):
 
 @dataclass
 class SingleArgParser(AbstractParser[Type[T], T]):
-    __slots__ = ('hook', )
+    __slots__ = ("hook",)
 
     hook: LoadHookType
 
@@ -66,7 +66,7 @@ class SingleArgParser(AbstractParser[Type[T], T]):
 
 @dataclass
 class Parser(AbstractParser[T, T]):
-    __slots__ = ('hook', )
+    __slots__ = ("hook",)
 
     hook: Callable[[Any, type[T]], T]
 
@@ -87,7 +87,8 @@ class RecursionSafeParser(AbstractParser):
 
         instance = fromdict(A, {'a': {'a': {'a': None}}})
     """
-    __slots__ = ('extras', 'hook')
+
+    __slots__ = ("extras", "hook")
 
     extras: Extras
     hook: Optional[LoadHookType]
@@ -96,9 +97,7 @@ class RecursionSafeParser(AbstractParser):
         from .loaders import load_func_for_dataclass
 
         return load_func_for_dataclass(
-            self.base_type,
-            is_main_class=False,
-            config=self.extras['config']
+            self.base_type, is_main_class=False, config=self.extras["config"]
         )
 
     # TODO: decorating `load_hook_func` with `@cached_property` could
@@ -114,15 +113,13 @@ class RecursionSafeParser(AbstractParser):
 
 @dataclass
 class LiteralParser(AbstractParser[M, M]):
-    __slots__ = ('value_to_type', )
+    __slots__ = ("value_to_type",)
 
     base_type: type[M]
 
     # noinspection PyDataclass
     def __post_init__(self, *_):
-        self.value_to_type = {
-            val: type(val) for val in get_args(self.base_type)
-        }
+        self.value_to_type = {val: type(val) for val in get_args(self.base_type)}
 
     def __contains__(self, item) -> bool:
         """
@@ -143,32 +140,37 @@ class LiteralParser(AbstractParser[M, M]):
 
         except KeyError:
             # No such Literal with the value of `o`
-            e: Exception = ValueError('Value not in expected Literal values')
+            e: Exception = ValueError("Value not in expected Literal values")
             raise ParseError(
-                e, o, self.base_type, 'load',
-                allowed_values=list(self.value_to_type))
+                e, o, self.base_type, "load", allowed_values=list(self.value_to_type)
+            )
 
         else:
             # The value of `o` is in the ones defined for the Literal, but
             # also confirm the type matches the one defined for the Literal.
             if type_does_not_match:
-                expected_val = next(v for v in self.value_to_type if v == o)    # pragma: no branch
-                e = TypeError(
-                    'Value did not match expected type for the Literal')
+                expected_val = next(
+                    v for v in self.value_to_type if v == o
+                )  # pragma: no branch
+                e = TypeError("Value did not match expected type for the Literal")
 
                 raise ParseError(
-                    e, o, self.base_type, 'load',
+                    e,
+                    o,
+                    self.base_type,
+                    "load",
                     have_type=type(o),
                     desired_type=self.value_to_type[o],
                     desired_value=expected_val,
-                    allowed_values=list(self.value_to_type))
+                    allowed_values=list(self.value_to_type),
+                )
 
         return o
 
 
 @dataclass
 class PatternedDTParser(AbstractParser[PatternedDT, DT]):
-    __slots__ = ('hook', )
+    __slots__ = ("hook",)
 
     base_type: PatternedDT
 
@@ -176,7 +178,7 @@ class PatternedDTParser(AbstractParser[PatternedDT, DT]):
     def __post_init__(self, _cls: Type, extras: Extras, *_):
         if not isinstance(self.base_type, PatternedDT):
             dt_cls = self.base_type
-            self.base_type = extras['pattern']
+            self.base_type = extras["pattern"]
             self.base_type.cls = dt_cls
 
         self.hook = self.base_type.get_transform_func()
@@ -186,24 +188,23 @@ class PatternedDTParser(AbstractParser[PatternedDT, DT]):
             return self.hook(date_string)
         except ValueError as e:
             raise ParseError(
-                e, date_string, self.base_type.cls, 'load',
-                pattern=self.base_type.pattern
+                e,
+                date_string,
+                self.base_type.cls,
+                "load",
+                pattern=self.base_type.pattern,
             )
 
 
 @dataclass
 class OptionalParser(AbstractParser[T, Optional[T]]):
-    __slots__ = ('parser', )
+    __slots__ = ("parser",)
 
     get_parser: InitVar[GetParserType]
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
-
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
         self.parser: AbstractParser = getattr(
-            p := get_parser(self.base_type, cls, extras),
-            '__call__', p
+            p := get_parser(self.base_type, cls, extras), "__call__", p
         )
 
     def __contains__(self, item):
@@ -222,18 +223,15 @@ class OptionalParser(AbstractParser[T, Optional[T]]):
 
 @dataclass
 class UnionParser(AbstractParser[Tuple[Type[T], ...], Optional[T]]):
-    __slots__ = ('parsers', 'tag_to_parser', 'tag_key')
+    __slots__ = ("parsers", "tag_to_parser", "tag_key")
 
     base_type: Tuple[Type[T], ...]
     get_parser: InitVar[GetParserType]
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
-
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
         # Tag key to search for when a dataclass is in a `Union` with
         # other types.
-        config = extras.get('config')
+        config = extras.get("config")
         if config:
             self.tag_key: str = config.tag_key or TAG
             auto_assign_tags = config.auto_assign_tags
@@ -261,9 +259,12 @@ class UnionParser(AbstractParser[Tuple[Type[T], ...], Optional[T]]):
                         # We don't want to mutate the base Meta class here
                         if meta is AbstractMeta:
                             from .bases_meta import BaseJSONWizardMeta
-                            cls_dict = {'__slots__': (), 'tag': tag}
+
+                            cls_dict = {"__slots__": (), "tag": tag}
                             # noinspection PyTypeChecker
-                            meta: type[M] = type(cls_name + 'Meta', (BaseJSONWizardMeta, ), cls_dict)
+                            meta: type[M] = type(
+                                cls_name + "Meta", (BaseJSONWizardMeta,), cls_dict
+                            )
                             _META[t] = meta
                         else:
                             meta.tag = cls_name
@@ -290,7 +291,12 @@ class UnionParser(AbstractParser[Tuple[Type[T], ...], Optional[T]]):
         # Attempt to parse to the desired dataclass type, using the "tag"
         # field in the input dictionary object.
         try:
-            tag = o[self.tag_key]
+            tag = list(self.tag_to_parser.keys())[0]
+            for tag_key in self.tag_to_parser.keys():
+                if tag_key in o.keys():
+                    tag = tag_key
+            if tag is None:
+                tag = o[self.tag_key]
         except (TypeError, KeyError):
             # Invalid type (`o` is not a dictionary object) or no such key.
             pass
@@ -299,18 +305,21 @@ class UnionParser(AbstractParser[Tuple[Type[T], ...], Optional[T]]):
                 return self.tag_to_parser[tag](o)
             except KeyError:
                 raise ParseError(
-                    TypeError('Object with tag was not in any of Union types'),
-                    o, [p.base_type for p in self.parsers],
-                    'load',
+                    TypeError("Object with tag was not in any of Union types"),
+                    o,
+                    [p.base_type for p in self.parsers],
+                    "load",
                     input_tag=tag,
                     tag_key=self.tag_key,
-                    valid_tags=list(self.tag_to_parser.keys()))
+                    valid_tags=list(self.tag_to_parser.keys()),
+                )
 
         raise ParseError(
-            TypeError('Object was not in any of Union types'),
-            o, [p.base_type for p in self.parsers],
-            'load',
-            tag_key=self.tag_key
+            TypeError("Object was not in any of Union types"),
+            o,
+            [p.base_type for p in self.parsers],
+            "load",
+            tag_key=self.tag_key,
         )
 
 
@@ -320,21 +329,18 @@ class IterableParser(AbstractParser[Type[LSQ], LSQ]):
     Parser for a :class:`list`, :class:`set`, :class:`frozenset`,
     :class:`deque`, or a subclass of either type.
     """
-    __slots__ = ('hook',
-                 'elem_parser')
+
+    __slots__ = ("hook", "elem_parser")
 
     base_type: Type[LSQ]
     hook: Callable[[Iterable, Type[LSQ], AbstractParser], LSQ]
     get_parser: InitVar[GetParserType]
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
-
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
         # Get the subscripted element type
         #   ex. `List[str]` -> `str`
         try:
-            elem_type, = get_args(self.base_type)
+            (elem_type,) = get_args(self.base_type)
         except ValueError:
             elem_type = Any
 
@@ -343,7 +349,9 @@ class IterableParser(AbstractParser[Type[LSQ], LSQ]):
         self.base_type = get_origin(self.base_type)
 
         self.elem_parser = getattr(
-            p := get_parser(elem_type, cls, extras), '__call__', p,
+            p := get_parser(elem_type, cls, extras),
+            "__call__",
+            p,
         )
 
     def __call__(self, o: Iterable) -> LSQ:
@@ -363,11 +371,8 @@ class TupleParser(AbstractParser[Type[S], S]):
     See :class:`VariadicTupleParser` for the parser that handles the variadic
     form, i.e. ``Tuple[str, ...]``
     """
-    __slots__ = ('hook',
-                 'elem_parsers',
-                 'total_count',
-                 'required_count',
-                 'elem_types')
+
+    __slots__ = ("hook", "elem_parsers", "total_count", "required_count", "elem_types")
 
     # Base type of the object which is instantiable
     #   ex. `Tuple[bool, int]` -> `tuple`
@@ -375,27 +380,27 @@ class TupleParser(AbstractParser[Type[S], S]):
     hook: Callable[[Any, Type[S], Optional[TupleOfParsers]], S]
     get_parser: InitVar[GetParserType]
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
-
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
         # Get the subscripted values
         #   ex. `Tuple[bool, int]` -> (bool, int)
         self.elem_types = elem_types = get_args(self.base_type)
         self.base_type = get_origin(self.base_type)
         # A collection with a parser for each type argument
-        elem_parsers = tuple(get_parser(t, cls, extras)
-                             for t in elem_types)
+        elem_parsers = tuple(get_parser(t, cls, extras) for t in elem_types)
         # Total count is generally the number of type arguments to `Tuple`, but
         # can be `Infinity` when a `Tuple` appears in its un-subscripted form.
-        self.total_count: N = len(elem_parsers) or float('inf')
+        self.total_count: N = len(elem_parsers) or float("inf")
         # Minimum number of *required* type arguments
         #   Check for the count of parsers which don't handle `NoneType` -
         #   this should exclude the parsers for `Optional` or `Union` types
         #   that have `None` in the list of args.
-        self.required_count: int = len(tuple(p for p in elem_parsers
-                                             if not isinstance(p, AbstractParser)
-                                             or None not in p))
+        self.required_count: int = len(
+            tuple(
+                p
+                for p in elem_parsers
+                if not isinstance(p, AbstractParser) or None not in p
+            )
+        )
 
         self.elem_parsers = elem_parsers or None
 
@@ -407,21 +412,30 @@ class TupleParser(AbstractParser[Type[S], S]):
         # Confirm that the number of arguments in `o` matches the count in the
         # typed annotation.
         if not self.required_count <= len(o) <= self.total_count:
-            e = TypeError('Wrong number of elements.')
+            e = TypeError("Wrong number of elements.")
             if self.required_count != self.total_count:
-                desired_count = f'{self.required_count} - {self.total_count}'
+                desired_count = f"{self.required_count} - {self.total_count}"
             else:
                 desired_count = str(self.total_count)
 
             # self.elem_parsers can be None at this moment
-            elem_parsers_types = [getattr(p, 'base_type', tp) for p, tp in
-                                  zip(self.elem_parsers, self.elem_types)] \
-                if self.elem_parsers else self.elem_types
+            elem_parsers_types = (
+                [
+                    getattr(p, "base_type", tp)
+                    for p, tp in zip(self.elem_parsers, self.elem_types)
+                ]
+                if self.elem_parsers
+                else self.elem_types
+            )
 
             raise ParseError(
-                e, o, elem_parsers_types, 'load',
+                e,
+                o,
+                elem_parsers_types,
+                "load",
                 desired_count=desired_count,
-                actual_count=len(o))
+                actual_count=len(o),
+            )
 
         return self.hook(o, self.base_type, self.elem_parsers)
 
@@ -440,12 +454,10 @@ class VariadicTupleParser(TupleParser):
     .. _See here: https://github.com/python/typing/issues/180
 
     """
-    __slots__ = ('first_elem_parser', )
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
+    __slots__ = ("first_elem_parser",)
 
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
         # Get the subscripted values
         #   ex. `Tuple[str, ...]` -> (str, )
         elem_types = get_args(self.base_type)
@@ -456,10 +468,10 @@ class VariadicTupleParser(TupleParser):
         # argument.
         # Given `Tuple[T, ...]`, we only need a parser for `T`
         self.first_elem_parser: Tuple[AbstractParser]
-        self.first_elem_parser = get_parser(elem_types[0], cls, extras),
+        self.first_elem_parser = (get_parser(elem_types[0], cls, extras),)
         # Total count should be `Infinity` here, since the variadic form
         # accepts any number of possible arguments.
-        self.total_count: N = float('inf')
+        self.total_count: N = float("inf")
         self.required_count = 0
 
     def __call__(self, o: M) -> M:
@@ -473,25 +485,19 @@ class VariadicTupleParser(TupleParser):
 
 @dataclass
 class NamedTupleParser(AbstractParser[tuple, NT]):
-    __slots__ = ('hook',
-                 'field_to_parser',
-                 'field_parsers')
+    __slots__ = ("hook", "field_to_parser", "field_parsers")
 
     hook: Callable[
-        [Any, type[tuple], Optional['FieldToParser'], List[AbstractParser]],
-        NT
+        [Any, type[tuple], Optional["FieldToParser"], List[AbstractParser]], NT
     ]
     get_parser: InitVar[GetParserType]
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
-
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
         # Get the field annotations for the `NamedTuple` type
         type_anns: Dict[str, type[T]] = self.base_type.__annotations__
 
-        self.field_to_parser: Optional['FieldToParser'] = {
-            f: getattr(p := get_parser(ftype, cls, extras), '__call__', p)
+        self.field_to_parser: Optional["FieldToParser"] = {
+            f: getattr(p := get_parser(ftype, cls, extras), "__call__", p)
             for f, ftype in type_anns.items()
         }
 
@@ -502,23 +508,17 @@ class NamedTupleParser(AbstractParser[tuple, NT]):
         Load a dictionary or list to a `NamedTuple` sub-class (or an
         un-annotated `namedtuple`)
         """
-        return self.hook(o, self.base_type,
-                         self.field_to_parser, self.field_parsers)
+        return self.hook(o, self.base_type, self.field_to_parser, self.field_parsers)
 
 
 @dataclass
 class NamedTupleUntypedParser(AbstractParser[tuple, NT]):
-    __slots__ = ('hook',
-                 'dict_parser',
-                 'list_parser')
+    __slots__ = ("hook", "dict_parser", "list_parser")
 
     hook: Callable[[Any, Type[tuple], AbstractParser, AbstractParser], NT]
     get_parser: InitVar[GetParserType]
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
-
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
         self.dict_parser = get_parser(dict, cls, extras).__call__
         self.list_parser = get_parser(list, cls, extras).__call__
 
@@ -527,24 +527,18 @@ class NamedTupleUntypedParser(AbstractParser[tuple, NT]):
         Load a dictionary or list to a `NamedTuple` sub-class (or an
         un-annotated `namedtuple`)
         """
-        return self.hook(o, self.base_type,
-                         self.dict_parser, self.list_parser)
+        return self.hook(o, self.base_type, self.dict_parser, self.list_parser)
 
 
 @dataclass
 class MappingParser(AbstractParser[Type[M], M]):
-    __slots__ = ('hook',
-                 'key_parser',
-                 'val_parser',
-                 'val_type')
+    __slots__ = ("hook", "key_parser", "val_parser", "val_type")
 
     base_type: Type[M]
     hook: Callable[[Any, Type[M], AbstractParser, AbstractParser], M]
     get_parser: InitVar[GetParserType]
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
         try:
             key_type, val_type = get_args(self.base_type)
         except ValueError:
@@ -557,8 +551,8 @@ class MappingParser(AbstractParser[Type[M], M]):
 
         val_parser = get_parser(val_type, cls, extras)
 
-        self.key_parser = getattr(p := get_parser(key_type, cls, extras), '__call__', p)
-        self.val_parser = getattr(val_parser, '__call__', val_parser)
+        self.key_parser = getattr(p := get_parser(key_type, cls, extras), "__call__", p)
+        self.val_parser = getattr(val_parser, "__call__", val_parser)
 
     def __call__(self, o: M) -> M:
         return self.hook(o, self.base_type, self.key_parser, self.val_parser)
@@ -566,65 +560,61 @@ class MappingParser(AbstractParser[Type[M], M]):
 
 @dataclass
 class DefaultDictParser(MappingParser[DD]):
-    __slots__ = ('default_factory', )
+    __slots__ = ("default_factory",)
 
     # Override the type annotations here
     base_type: Type[DD]
-    hook: Callable[
-        [Any, Type[DD], DefFactory, AbstractParser, AbstractParser], DD]
+    hook: Callable[[Any, Type[DD], DefFactory, AbstractParser, AbstractParser], DD]
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
         super().__post_init__(cls, extras, get_parser)
 
         # The default factory argument to pass to the `defaultdict` subclass
         val_type = self.val_type
-        val_base_type = getattr(val_type, '__origin__', val_type)
+        val_base_type = getattr(val_type, "__origin__", val_type)
         self.default_factory: DefFactory = val_base_type
 
     def __call__(self, o: DD) -> DD:
-        return self.hook(o, self.base_type, self.default_factory,
-                         self.key_parser, self.val_parser)
+        return self.hook(
+            o, self.base_type, self.default_factory, self.key_parser, self.val_parser
+        )
 
 
 @dataclass
 class TypedDictParser(AbstractParser[Type[M], M]):
-    __slots__ = ('hook',
-                 'key_to_parser',
-                 'required_keys',
-                 'optional_keys')
+    __slots__ = ("hook", "key_to_parser", "required_keys", "optional_keys")
 
     base_type: Type[M]
-    hook: Callable[[Any, Type[M], 'FieldToParser', FrozenKeys, FrozenKeys], M]
+    hook: Callable[[Any, Type[M], "FieldToParser", FrozenKeys, FrozenKeys], M]
     get_parser: InitVar[GetParserType]
 
-    def __post_init__(self, cls: Type,
-                      extras: Extras,
-                      get_parser: GetParserType):
-
-        self.key_to_parser: 'FieldToParser' = {
-            k: getattr(p := get_parser(v, cls, extras), '__call__', p)
+    def __post_init__(self, cls: Type, extras: Extras, get_parser: GetParserType):
+        self.key_to_parser: "FieldToParser" = {
+            k: getattr(p := get_parser(v, cls, extras), "__call__", p)
             for k, v in self.base_type.__annotations__.items()
         }
 
-        self.required_keys, self.optional_keys = get_keys_for_typed_dict(
-            self.base_type
-        )
+        self.required_keys, self.optional_keys = get_keys_for_typed_dict(self.base_type)
 
     def __call__(self, o: M) -> M:
         try:
-            return self.hook(o, self.base_type, self.key_to_parser,
-                             self.required_keys, self.optional_keys)
+            return self.hook(
+                o,
+                self.base_type,
+                self.key_to_parser,
+                self.required_keys,
+                self.optional_keys,
+            )
 
         except KeyError as e:
-            err: Exception = KeyError(f'Missing required key: {e.args[0]}')
-            raise ParseError(err, o, self.base_type, 'load')
+            err: Exception = KeyError(f"Missing required key: {e.args[0]}")
+            raise ParseError(err, o, self.base_type, "load")
 
         except Exception:
             if not isinstance(o, dict):
-                err = TypeError('Incorrect type for object')
+                err = TypeError("Incorrect type for object")
                 raise ParseError(
-                    err, o, self.base_type, 'load', desired_type=self.base_type)
+                    err, o, self.base_type, "load", desired_type=self.base_type
+                )
             else:
                 raise
