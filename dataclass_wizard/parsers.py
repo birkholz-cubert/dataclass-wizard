@@ -152,7 +152,8 @@ class LiteralParser(AbstractParser[M, M]):
             # The value of `o` is in the ones defined for the Literal, but
             # also confirm the type matches the one defined for the Literal.
             if type_does_not_match:
-                expected_val = next(v for v in self.value_to_type if v == o)    # pragma: no branch
+                expected_val = next(
+                    v for v in self.value_to_type if v == o)    # pragma: no branch
                 e = TypeError(
                     'Value did not match expected type for the Literal')
 
@@ -263,7 +264,8 @@ class UnionParser(AbstractParser[Tuple[Type[T], ...], Optional[T]]):
                             from .bases_meta import BaseJSONWizardMeta
                             cls_dict = {'__slots__': (), 'tag': tag}
                             # noinspection PyTypeChecker
-                            meta: type[M] = type(cls_name + 'Meta', (BaseJSONWizardMeta, ), cls_dict)
+                            meta: type[M] = type(
+                                cls_name + 'Meta', (BaseJSONWizardMeta, ), cls_dict)
                             _META[t] = meta
                         else:
                             meta.tag = cls_name
@@ -290,7 +292,12 @@ class UnionParser(AbstractParser[Tuple[Type[T], ...], Optional[T]]):
         # Attempt to parse to the desired dataclass type, using the "tag"
         # field in the input dictionary object.
         try:
-            tag = o[self.tag_key]
+            tag = list(self.tag_to_parser.keys())[0]
+            for tag_key in self.tag_to_parser.keys():
+                if tag_key in o.keys():
+                    tag = tag_key
+            if tag is None:
+                tag = o[self.tag_key]
         except (TypeError, KeyError):
             # Invalid type (`o` is not a dictionary object) or no such key.
             pass
@@ -555,7 +562,8 @@ class MappingParser(AbstractParser[Type[M], M]):
 
         val_parser = get_parser(val_type, cls, extras)
 
-        self.key_parser = getattr(p := get_parser(key_type, cls, extras), '__call__', p)
+        self.key_parser = getattr(p := get_parser(
+            key_type, cls, extras), '__call__', p)
         self.val_parser = getattr(val_parser, '__call__', val_parser)
 
     def __call__(self, o: M) -> M:
