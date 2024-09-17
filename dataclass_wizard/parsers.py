@@ -104,7 +104,8 @@ class LiteralParser(AbstractParser):
             # The value of `o` is in the ones defined for the Literal, but
             # also confirm the type matches the one defined for the Literal.
             if type_does_not_match:
-                expected_val = next(v for v in self.value_to_type if v == o)    # pragma: no branch
+                expected_val = next(
+                    v for v in self.value_to_type if v == o)    # pragma: no branch
                 e = TypeError(
                     'Value did not match expected type for the Literal')
 
@@ -207,7 +208,8 @@ class UnionParser(AbstractParser):
                     if meta is AbstractMeta:
                         from .bases_meta import BaseJSONWizardMeta
                         cls_dict = {'__slots__': (), 'tag': tag}
-                        meta = type(cls_name + 'Meta', (BaseJSONWizardMeta, ), cls_dict)
+                        meta = type(cls_name + 'Meta',
+                                    (BaseJSONWizardMeta, ), cls_dict)
                         _META[t] = meta
                     else:
                         meta.tag = cls_name
@@ -232,7 +234,12 @@ class UnionParser(AbstractParser):
         # Attempt to parse to the desired dataclass type, using the "tag"
         # field in the input dictionary object.
         try:
-            tag = o[self.tag_key]
+            tag = list(self.tag_to_parser.keys())[0]
+            for tag_key in self.tag_to_parser.keys():
+                if tag_key in o.keys():
+                    tag = tag_key
+            if tag is None:
+                tag = o[self.tag_key]
         except (TypeError, KeyError):
             # Invalid type (`o` is not a dictionary object) or no such key.
             pass
