@@ -368,7 +368,7 @@ def dump_func_for_dataclass(cls: Type[T],
         Adds a tag field when `tag` field is passed in Meta.
         """
         result = cls_asdict(obj, dict_factory, exclude, **kwargs)
-        result[tag_key] = meta.tag
+        # result[tag_key] = meta.tag
 
         return result
 
@@ -429,7 +429,8 @@ def _asdict_inner(obj, dict_factory, hooks, meta, cls_to_dump_func) -> Any:
                     dump_hook = hooks[cls] = hooks[t]
                     break
             else:
-                LOG.warning('Using default dumper, object=%r, type=%r', obj, cls)
+                LOG.warning(
+                    'Using default dumper, object=%r, type=%r', obj, cls)
 
                 # cache the hook for the custom type, so that next time this
                 # logic isn't run again.
