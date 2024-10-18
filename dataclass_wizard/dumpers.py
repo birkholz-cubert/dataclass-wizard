@@ -449,12 +449,14 @@ def dump_func_for_dataclass(cls: Type[T],
                             _skip_condition, _locals, skip_if_field)
                         _final_skip_if = finalize_skip_if(
                             _skip_condition, f'o.{field}', _skip_if)
-                        field_assignments.append(f'if not ({skip_field} or {_final_skip_if}):')
+                        field_assignments.append(
+                            f'if not ({skip_field} or {_final_skip_if}):')
                     # If Meta `skip_if` has a value
                     elif skip_if_condition:
                         _final_skip_if = finalize_skip_if(
                             meta.skip_if, f'o.{field}', skip_if_condition)
-                        field_assignments.append(f'if not ({skip_field} or {_final_skip_if}):')
+                        field_assignments.append(
+                            f'if not ({skip_field} or {_final_skip_if}):')
                     # Else, proceed as normal
                     else:
                         field_assignments.append(f"if not {skip_field}:")
@@ -472,10 +474,12 @@ def dump_func_for_dataclass(cls: Type[T],
 
                 elif has_catch_all and catch_all_field == field:
                     if field in field_to_default:
-                        field_assignments.append(f"if o.{field} != {default_value} and not {skip_field}:")
+                        field_assignments.append(
+                            f"if o.{field} != {default_value} and not {skip_field}:")
                     else:
                         field_assignments.append(f"if not {skip_field}:")
-                    field_assignments.append(f"  for k, v in o.{field}.items():")
+                    field_assignments.append(
+                        f"  for k, v in o.{field}.items():")
                     field_assignments.append("    result.append((k,"
                                              "asdict(v,dict_factory,hooks,config,cls_to_asdict)))")
 
@@ -567,7 +571,8 @@ def _asdict_inner(obj, dict_factory, hooks, meta, cls_to_dump_func,
                     dump_hook = hooks[cls] = hooks[t]
                     break
             else:
-                LOG.warning('Using default dumper, object=%r, type=%r', obj, cls)
+                LOG.warning(
+                    'Using default dumper, object=%r, type=%r', obj, cls)
 
                 # cache the hook for the custom type, so that next time this
                 # logic isn't run again.
