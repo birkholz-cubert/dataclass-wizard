@@ -8,13 +8,16 @@ obtained from http://www.apache.org/licenses/LICENSE-2.0.
 
 See the end of this file for the original Apache license from this library.
 """
+
 from base64 import b64encode
 from collections import defaultdict, deque
+
 # noinspection PyProtectedMember,PyUnresolvedReferences
 from dataclasses import _is_dataclass_instance
 from datetime import datetime, time, date, timedelta
 from decimal import Decimal
 from enum import Enum
+
 # noinspection PyProtectedMember,PyUnresolvedReferences
 from typing import Type, List, Dict, Any, NamedTupleMeta, Optional, Callable, Collection
 from uuid import UUID
@@ -23,12 +26,20 @@ from .abstractions import AbstractDumper
 from .bases import BaseDumpHook, AbstractMeta, META
 from .class_helper import (
     create_new_class,
-    dataclass_field_names, dataclass_field_to_default,
+    dataclass_field_names,
+    dataclass_field_to_default,
     dataclass_field_to_json_field,
-    dataclass_to_dumper, set_class_dumper,
-    CLASS_TO_DUMP_FUNC, setup_dump_config_for_cls_if_needed, get_meta,
-    dataclass_field_to_load_parser, dataclass_field_to_json_path, is_builtin, dataclass_field_to_skip_if,
-    v1_dataclass_field_to_alias_for_load, v1_dataclass_field_to_alias_for_dump,
+    dataclass_to_dumper,
+    set_class_dumper,
+    CLASS_TO_DUMP_FUNC,
+    setup_dump_config_for_cls_if_needed,
+    get_meta,
+    dataclass_field_to_load_parser,
+    dataclass_field_to_json_path,
+    is_builtin,
+    dataclass_field_to_skip_if,
+    v1_dataclass_field_to_alias_for_load,
+    v1_dataclass_field_to_alias_for_dump,
 )
 from .constants import _DUMP_HOOKS, TAG, CATCH_ALL
 from .decorators import _alias
@@ -37,11 +48,21 @@ from .loader_selection import _get_load_fn_for_dataclass, get_dumper, asdict
 from .log import LOG
 from .models import get_skip_if_condition, finalize_skip_if
 from .type_def import (
-    Buffer, ExplicitNull, NoneType, JSONObject,
-    DD, LSQ, E, U, LT, NT, T
+    Buffer,
+    ExplicitNull,
+    NoneType,
+    JSONObject,
+    DD,
+    LSQ,
+    E,
+    U,
+    LT,
+    NT,
+    T,
 )
 from .utils.dict_helper import NestedDict
 from .utils.function_builder import FunctionBuilder
+
 # noinspection PyProtectedMember
 from .utils.dataclass_compat import _set_new_attribute
 from .utils.string_conv import to_camel_case
@@ -54,6 +75,7 @@ class DumpMixin(AbstractDumper, BaseDumpHook):
     built-in types to a more 'JSON-friendly' version.
 
     """
+
     __slots__ = ()
 
     HOOK_ARITY = 6
@@ -106,32 +128,25 @@ class DumpMixin(AbstractDumper, BaseDumpHook):
 
     @staticmethod
     def dump_with_list_or_tuple(o: LT, typ: Type[LT], *args):
-
         return typ(_asdict_inner(v, *args) for v in o)
 
     @staticmethod
     def dump_with_iterable(o: LSQ, _typ: Type[LSQ], *args):
-
         return list(_asdict_inner(v, *args) for v in o)
 
     @staticmethod
     def dump_with_named_tuple(o: NT, typ: Type[NT], *args):
-
         return typ(*[_asdict_inner(v, *args) for v in o])
 
     @staticmethod
     def dump_with_dict(o: Dict, typ: Type[Dict], *args):
-
-        return typ((_asdict_inner(k, *args),
-                    _asdict_inner(v, *args))
-                   for k, v in o.items())
+        return typ(
+            (_asdict_inner(k, *args), _asdict_inner(v, *args)) for k, v in o.items()
+        )
 
     @staticmethod
     def dump_with_defaultdict(o: DD, _typ: Type[DD], *args):
-
-        return {_asdict_inner(k, *args):
-                _asdict_inner(v, *args)
-                for k, v in o.items()}
+        return {_asdict_inner(k, *args): _asdict_inner(v, *args) for k, v in o.items()}
 
     @staticmethod
     def dump_with_decimal(o: Decimal, *_):
@@ -139,11 +154,11 @@ class DumpMixin(AbstractDumper, BaseDumpHook):
 
     @staticmethod
     def dump_with_datetime(o: datetime, *_):
-        return o.isoformat().replace('+00:00', 'Z', 1)
+        return o.isoformat().replace("+00:00", "Z", 1)
 
     @staticmethod
     def dump_with_time(o: time, *_):
-        return o.isoformat().replace('+00:00', 'Z', 1)
+        return o.isoformat().replace("+00:00", "Z", 1)
 
     @staticmethod
     def dump_with_date(o: date, *_):
@@ -188,11 +203,11 @@ def setup_default_dumper(cls=DumpMixin):
     cls.register_dump_hook(timedelta, cls.dump_with_timedelta)
 
 
-def dump_func_for_dataclass(cls: Type[T],
-                            config: Optional[META] = None,
-                            nested_cls_to_dump_func: Dict[Type, Any] = None,
-                            ) -> Callable[[T, Any, Any, Any], JSONObject]:
-
+def dump_func_for_dataclass(
+    cls: Type[T],
+    config: Optional[META] = None,
+    nested_cls_to_dump_func: Dict[Type, Any] = None,
+) -> Callable[[T, Any, Any, Any], JSONObject]:
     # TODO dynamically generate for multiple nested classes at once
 
     # Get the dumper for the class, or create a new one as needed.
@@ -261,8 +276,7 @@ def dump_func_for_dataclass(cls: Type[T],
         else:
             cls_loader = get_loader(cls, v1=meta.v1)
             # Use the cached result if it exists, but don't cache it ourselves.
-            _ = dataclass_field_to_load_parser(
-                cls_loader, cls, config, save=False)
+            _ = dataclass_field_to_load_parser(cls_loader, cls, config, save=False)
 
     # Tag key to populate when a dataclass is in a `Union` with other types.
     tag_key = meta.tag_key or TAG
@@ -277,60 +291,58 @@ def dump_func_for_dataclass(cls: Type[T],
     skip_defaults = True if meta.skip_defaults or meta.skip_defaults_if else False
 
     _locals = {
-        'config': config,
-        'asdict': _asdict_inner,
-        'hooks': hooks,
-        'cls_to_asdict': nested_cls_to_dump_func,
+        "config": config,
+        "asdict": _asdict_inner,
+        "hooks": hooks,
+        "cls_to_asdict": nested_cls_to_dump_func,
     }
 
     _globals = {}
 
-    skip_if_condition = get_skip_if_condition(
-        meta.skip_if, _locals, '_skip_value')
+    skip_if_condition = get_skip_if_condition(meta.skip_if, _locals, "_skip_value")
 
     skip_defaults_if_condition = get_skip_if_condition(
-        meta.skip_defaults_if, _locals, '_skip_defaults_value')
+        meta.skip_defaults_if, _locals, "_skip_defaults_value"
+    )
 
     # Initialize FuncBuilder
     fn_gen = FunctionBuilder()
 
     # Code for `cls_asdict`
-    with fn_gen.function('cls_asdict',
-                         ['o',
-                          'dict_factory=dict',
-                          "exclude:'list[str]|None'=None",
-                          f'skip_defaults:bool={skip_defaults}'],
-                         'JSONObject',
-                         _locals):
-
-        if (
-            _pre_dict := getattr(cls, '_pre_dict', None)
-        ) is not None:
+    with fn_gen.function(
+        "cls_asdict",
+        [
+            "o",
+            "dict_factory=dict",
+            "exclude:'list[str]|None'=None",
+            f"skip_defaults:bool={skip_defaults}",
+        ],
+        "JSONObject",
+        _locals,
+    ):
+        if (_pre_dict := getattr(cls, "_pre_dict", None)) is not None:
             # class defines a `_pre_dict()`
-            _locals['__pre_dict__'] = _pre_dict
-            fn_gen.add_line('__pre_dict__(o)')
-        elif (
-            _pre_dict := getattr(cls_dumper, '__pre_as_dict__', None)
-        ) is not None:
+            _locals["__pre_dict__"] = _pre_dict
+            fn_gen.add_line("__pre_dict__(o)")
+        elif (_pre_dict := getattr(cls_dumper, "__pre_as_dict__", None)) is not None:
             # deprecated since v0.28.0
             # subclass of `DumpMixin` defines a `__pre_as_dict__()`
             reason = "use `_pre_dict` instead - no need to subclass from DumpMixin"
             show_deprecation_warning(_pre_dict, reason)
 
-            _locals['__pre_dict__'] = _pre_dict
+            _locals["__pre_dict__"] = _pre_dict
 
             # Call the optional hook that runs before we process the dataclass
-            fn_gen.add_line('__pre_dict__(o)')
+            fn_gen.add_line("__pre_dict__(o)")
 
         # Initialize result list to hold field mappings
         fn_gen.add_line("result = []")
 
         if has_json_paths:
-            _locals['NestedDict'] = NestedDict
-            fn_gen.add_line('paths = NestedDict()')
+            _locals["NestedDict"] = NestedDict
+            fn_gen.add_line("paths = NestedDict()")
 
         if field_names:
-
             skip_field_assignments = []
             exclude_assignments = []
             skip_default_assignments = []
@@ -338,18 +350,19 @@ def dump_func_for_dataclass(cls: Type[T],
 
             # Loop over the dataclass fields
             for i, field in enumerate(field_names):
-                skip_field = f'_skip_{i}'
-                skip_if_field = f'_skip_if_{i}'
-                default_value = f'_default_{i}'
+                skip_field = f"_skip_{i}"
+                skip_if_field = f"_skip_if_{i}"
+                default_value = f"_default_{i}"
 
                 skip_field_assignments.append(skip_field)
-                exclude_assignments.append(
-                    f'{skip_field}={field!r} in exclude'
-                )
+                exclude_assignments.append(f"{skip_field}={field!r} in exclude")
                 if field in field_to_default:
                     if skip_defaults_if_condition:
                         _final_skip_if = finalize_skip_if(
-                            meta.skip_defaults_if, f'o.{field}', skip_defaults_if_condition)
+                            meta.skip_defaults_if,
+                            f"o.{field}",
+                            skip_defaults_if_condition,
+                        )
                         skip_default_assignments.append(
                             f"{skip_field} = {skip_field} or {_final_skip_if}"
                         )
@@ -374,46 +387,60 @@ def dump_func_for_dataclass(cls: Type[T],
                     if field in field_to_skip_if:
                         _skip_condition = field_to_skip_if[field]
                         _skip_if = get_skip_if_condition(
-                            _skip_condition, _locals, skip_if_field)
+                            _skip_condition, _locals, skip_if_field
+                        )
                         _final_skip_if = finalize_skip_if(
-                            _skip_condition, f'o.{field}', _skip_if)
-                        field_assignments.append(f'if not ({skip_field} or {_final_skip_if}):')
+                            _skip_condition, f"o.{field}", _skip_if
+                        )
+                        field_assignments.append(
+                            f"if not ({skip_field} or {_final_skip_if}):"
+                        )
                     # If Meta `skip_if` has a value
                     elif skip_if_condition:
                         _final_skip_if = finalize_skip_if(
-                            meta.skip_if, f'o.{field}', skip_if_condition)
-                        field_assignments.append(f'if not ({skip_field} or {_final_skip_if}):')
+                            meta.skip_if, f"o.{field}", skip_if_condition
+                        )
+                        field_assignments.append(
+                            f"if not ({skip_field} or {_final_skip_if}):"
+                        )
                     # Else, proceed as normal
                     else:
                         field_assignments.append(f"if not {skip_field}:")
 
                     if json_field:
-                        field_assignments.append(f"  result.append(('{json_field}',"
-                                                 f"asdict(o.{field},dict_factory,hooks,config,cls_to_asdict)))")
+                        field_assignments.append(
+                            f"  result.append(('{json_field}',"
+                            f"asdict(o.{field},dict_factory,hooks,config,cls_to_asdict)))"
+                        )
                     # Empty string, will be the case for a dataclass
                     # field which specifies a "JSON Path".
                     else:
                         path = field_to_path[field]
-                        key_part = ''.join(f'[{p!r}]' for p in path)
+                        key_part = "".join(f"[{p!r}]" for p in path)
                         field_assignments.append(
-                            f'  paths{key_part} = asdict(o.{field},dict_factory,hooks,config,cls_to_asdict)')
+                            f"  paths{key_part} = asdict(o.{field},dict_factory,hooks,config,cls_to_asdict)"
+                        )
 
                 elif has_catch_all and catch_all_field == field:
                     if field in field_to_default:
-                        field_assignments.append(f"if o.{field} != {default_value} and not {skip_field}:")
+                        field_assignments.append(
+                            f"if o.{field} != {default_value} and not {skip_field}:"
+                        )
                     else:
                         field_assignments.append(f"if not {skip_field}:")
                     field_assignments.append(f"  for k, v in o.{field}.items():")
-                    field_assignments.append("    result.append((k,"
-                                             "asdict(v,dict_factory,hooks,config,cls_to_asdict)))")
+                    field_assignments.append(
+                        "    result.append((k,"
+                        "asdict(v,dict_factory,hooks,config,cls_to_asdict)))"
+                    )
 
-            with fn_gen.if_('exclude is None'):
-                fn_gen.add_line('='.join(skip_field_assignments) + '=False')
+            with fn_gen.if_("exclude is None"):
+                fn_gen.add_line("=".join(skip_field_assignments) + "=False")
             with fn_gen.else_():
-                fn_gen.add_line(';'.join(exclude_assignments))
+                fn_gen.add_line(";".join(exclude_assignments))
 
             if skip_default_assignments:
-                with fn_gen.if_('skip_defaults'):
+                with fn_gen.if_("skip_defaults"):
                     fn_gen.add_lines(*skip_default_assignments)
 
             fn_gen.add_lines(*field_assignments)
@@ -433,7 +460,7 @@ def dump_func_for_dataclass(cls: Type[T],
     # Compile the code into a dynamic string
     functions = fn_gen.create_functions(_globals)
 
-    cls_asdict = functions['cls_asdict']
+    cls_asdict = functions["cls_asdict"]
 
     asdict_func = cls_asdict
 
@@ -442,8 +469,8 @@ def dump_func_for_dataclass(cls: Type[T],
     if is_main_class:
         # Check if the class has a `to_dict`, and it's
         # equivalent to `asdict`.
-        if getattr(cls, 'to_dict', None) is asdict:
-            _set_new_attribute(cls, 'to_dict', asdict_func, force=True)
+        if getattr(cls, "to_dict", None) is asdict:
+            _set_new_attribute(cls, "to_dict", asdict_func, force=True)
         CLASS_TO_DUMP_FUNC[cls] = asdict_func
     else:
         nested_cls_to_dump_func[cls] = asdict_func
@@ -456,10 +483,15 @@ def dump_func_for_dataclass(cls: Type[T],
 # method has also been heavily modified from the original implementation in
 # `dataclasses`. However, I will call out specific lines where it is taken
 # directly from the original version.
-def _asdict_inner(obj, dict_factory, hooks, meta, cls_to_dump_func,
-                  # Added for `EnvWizard` (environ/dumpers.py)
-                  dump_func_for_cls=dump_func_for_dataclass) -> Any:
-
+def _asdict_inner(
+    obj,
+    dict_factory,
+    hooks,
+    meta,
+    cls_to_dump_func,
+    # Added for `EnvWizard` (environ/dumpers.py)
+    dump_func_for_cls=dump_func_for_dataclass,
+) -> Any:
     cls = type(obj)
     dump_hook = hooks.get(cls)
     hook_args = (obj, cls, dict_factory, hooks, meta, cls_to_dump_func)
@@ -476,9 +508,8 @@ def _asdict_inner(obj, dict_factory, hooks, meta, cls_to_dump_func,
         return dump(obj, dict_factory=dict_factory)
 
     else:
-
         # -- The following `if` condition and comments are the same as in the original version --
-        if isinstance(obj, tuple) and hasattr(obj, '_fields'):
+        if isinstance(obj, tuple) and hasattr(obj, "_fields"):
             # obj is a namedtuple.  Recurse into it, but the returned
             # object is another namedtuple of the same type.  This is
             # similar to how other list- or tuple-derived classes are
@@ -495,7 +526,7 @@ def _asdict_inner(obj, dict_factory, hooks, meta, cls_to_dump_func,
                     dump_hook = hooks[cls] = hooks[t]
                     break
             else:
-                LOG.warning('Using default dumper, object=%r, type=%r', obj, cls)
+                LOG.warning("Using default dumper, object=%r, type=%r", obj, cls)
 
                 # cache the hook for the custom type, so that next time this
                 # logic isn't run again.
