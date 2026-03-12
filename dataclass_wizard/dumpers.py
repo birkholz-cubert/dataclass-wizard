@@ -451,7 +451,7 @@ def dump_func_for_dataclass(
         # Return the final dictionary result
         if meta.tag:
             fn_gen.add_line("result = dict_factory(result)")
-            fn_gen.add_line(f"result[{tag_key!r}] = {meta.tag!r}")
+            # fn_gen.add_line(f"result[{tag_key!r}] = {meta.tag!r}")
             # Return the result with the tag added
             fn_gen.add_line("return result")
         else:
